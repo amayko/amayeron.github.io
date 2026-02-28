@@ -23,7 +23,35 @@
   <!-- Trade Entry Form -->
   <form id="tradeForm">
     <label>Date: <input type="date" id="date" required></label>
-    <label>Symbol: <input type="text" id="symbol" required></label>
+
+    <!-- Symbol Dropdown -->
+    <label>Symbol:
+      <select id="symbol" required>
+        <optgroup label="Major Forex Pairs">
+          <option value="EUR/USD">EUR/USD</option>
+          <option value="GBP/USD">GBP/USD</option>
+          <option value="USD/JPY">USD/JPY</option>
+          <option value="USD/CHF">USD/CHF</option>
+          <option value="AUD/USD">AUD/USD</option>
+          <option value="NZD/USD">NZD/USD</option>
+          <option value="USD/CAD">USD/CAD</option>
+        </optgroup>
+        <optgroup label="Cross Pairs">
+          <option value="EUR/GBP">EUR/GBP</option>
+          <option value="EUR/JPY">EUR/JPY</option>
+          <option value="GBP/JPY">GBP/JPY</option>
+          <option value="AUD/JPY">AUD/JPY</option>
+          <option value="NZD/JPY">NZD/JPY</option>
+        </optgroup>
+        <optgroup label="Metals">
+          <option value="XAU/USD">Gold (XAU/USD)</option>
+          <option value="XAG/USD">Silver (XAG/USD)</option>
+          <option value="XPT/USD">Platinum (XPT/USD)</option>
+          <option value="XPD/USD">Palladium (XPD/USD)</option>
+        </optgroup>
+      </select>
+    </label>
+
     <label>Direction:
       <select id="direction" required>
         <option value="Buy">Buy</option>
@@ -82,6 +110,8 @@
     const form = document.getElementById('tradeForm');
     const tableBody = document.querySelector('#tradeTable tbody');
 
+    let winRateChart, plChart, checklistChart;
+
     async function loadTrades() {
       const res = await fetch('/trades');
       const trades = await res.json();
@@ -98,4 +128,60 @@
         if (t.newsFilter) { checklistSummary.push("News checked"); checklistStats.newsFilter++; }
         if (t.followPlan) checklistSummary.push("Plan followed");
         if (t.slippage) checklistSummary.push("Slippage noted");
-        if (t.mistakes) checklistSummary.push
+        if (t.mistakes) checklistSummary.push("Mistakes logged");
+        if (t.emotions) checklistSummary.push("Emotions recorded");
+        if (t.marketConditions) checklistSummary.push("Market conditions noted");
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${t.date}</td>
+          <td>${t.symbol}</td>
+          <td>${t.direction}</td>
+          <td>${t.entry}</td>
+          <td>${t.exit}</td>
+          <td>${t.pl}</td>
+          <td>${t.notes}</td>
+          <td>${checklistSummary.join(", ")}</td>
+        `;
+        tableBody.appendChild(row);
+
+        if (t.pl > 0) wins++; else losses++;
+        totalPL += t.pl;
+      });
+
+      // Destroy old charts before creating new ones
+      if (winRateChart) winRateChart.destroy();
+      if (plChart) plChart.destroy();
+      if (checklistChart) checklistChart.destroy();
+
+      // Win Rate Chart
+      winRateChart = new Chart(document.getElementById('winRateChart'), {
+        type: 'doughnut',
+        data: { labels: ['Wins', 'Losses'], datasets: [{ data: [wins, losses], backgroundColor: ['#4caf50', '#f44336'] }] }
+      });
+
+      // Average P/L Chart
+      plChart = new Chart(document.getElementById('plChart'), {
+        type: 'bar',
+        data: { labels: ['Average P/L'], datasets: [{ data: [totalPL / trades.length || 0], backgroundColor: '#2196f3' }] }
+      });
+
+      // Checklist Compliance Chart
+      checklistChart = new Chart(document.getElementById('checklistChart'), {
+        type: 'bar',
+        data: {
+          labels: ['Risk/Reward', 'Stop-Loss', 'Take-Profit', 'News Filter'],
+          datasets: [{
+            data: [
+              checklistStats.riskReward,
+              checklistStats.stopLoss,
+              checklistStats.takeProfit,
+              checklistStats.newsFilter
+            ],
+            backgroundColor: ['#ff9800', '#9c27b0', '#03a9f4', '#8bc34a']
+          }]
+        }
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
