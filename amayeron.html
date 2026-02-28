@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trading Journal</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+    h1, h2 { text-align: center; }
+    form, table { background: #fff; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+    label { display: block; margin-top: 10px; }
+    input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background: #eee; }
+    .checklist { margin-top: 15px; }
+    .checklist h3 { margin-bottom: 5px; }
+    .checklist label { display: inline-block; margin-right: 15px; }
+  </style>
+</head>
+<body>
+  <h1>Trading Journal</h1>
+
+  <!-- Trade Entry Form -->
+  <form id="tradeForm">
+    <label>Date: <input type="date" id="date" required></label>
+    <label>Symbol: <input type="text" id="symbol" required></label>
+    <label>Direction:
+      <select id="direction" required>
+        <option value="Buy">Buy</option>
+        <option value="Sell">Sell</option>
+      </select>
+    </label>
+    <label>Entry Price: <input type="number" step="0.01" id="entry" required></label>
+    <label>Exit Price: <input type="number" step="0.01" id="exit" required></label>
+    <label>Notes: <textarea id="notes"></textarea></label>
+
+    <!-- Checklist -->
+    <div class="checklist">
+      <h3>Pre-Trade Planning</h3>
+      <label><input type="checkbox" id="riskReward"> Risk/Reward planned</label>
+      <label><input type="checkbox" id="stopLoss"> Stop-loss set</label>
+      <label><input type="checkbox" id="takeProfit"> Take-profit set</label>
+      <label><input type="checkbox" id="newsFilter"> News filter checked</label>
+    </div>
+    <div class="checklist">
+      <h3>Execution</h3>
+      <label><input type="checkbox" id="followPlan"> Followed plan</label>
+      <label><input type="checkbox" id="slippage"> Slippage noted</label>
+    </div>
+    <div class="checklist">
+      <h3>Post-Trade Analysis</h3>
+      <label><input type="checkbox" id="mistakes"> Mistakes logged</label>
+      <label><input type="checkbox" id="emotions"> Emotions recorded</label>
+      <label><input type="checkbox" id="marketConditions"> Market conditions noted</label>
+    </div>
+
+    <button type="submit">Add Trade</button>
+  </form>
+
+  <!-- Trade Log Table -->
+  <table id="tradeTable">
+    <thead>
+      <tr>
+        <th>Date</th><th>Symbol</th><th>Direction</th>
+        <th>Entry</th><th>Exit</th><th>P/L</th><th>Notes</th><th>Checklist</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Analytics Dashboard -->
+  <h2>Analytics Dashboard</h2>
+  <canvas id="winRateChart" width="400" height="200"></canvas>
+  <canvas id="plChart" width="400" height="200"></canvas>
+  <canvas id="checklistChart" width="400" height="200"></canvas>
+
+  <!-- Weekly Report -->
+  <h2>Weekly Summary Report</h2>
+  <div id="weeklyReport"></div>
+
+  <script>
+    const form = document.getElementById('tradeForm');
+    const tableBody = document.querySelector('#tradeTable tbody');
+
+    async function loadTrades() {
+      const res = await fetch('/trades');
+      const trades = await res.json();
+      tableBody.innerHTML = '';
+
+      let wins = 0, losses = 0, totalPL = 0;
+      let checklistStats = { stopLoss: 0, riskReward: 0, takeProfit: 0, newsFilter: 0 };
+
+      trades.forEach(t => {
+        const checklistSummary = [];
+        if (t.riskReward) { checklistSummary.push("R:R planned"); checklistStats.riskReward++; }
+        if (t.stopLoss) { checklistSummary.push("SL set"); checklistStats.stopLoss++; }
+        if (t.takeProfit) { checklistSummary.push("TP set"); checklistStats.takeProfit++; }
+        if (t.newsFilter) { checklistSummary.push("News checked"); checklistStats.newsFilter++; }
+        if (t.followPlan) checklistSummary.push("Plan followed");
+        if (t.slippage) checklistSummary.push("Slippage noted");
+        if (t.mistakes) checklistSummary.push
